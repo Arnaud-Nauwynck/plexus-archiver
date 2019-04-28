@@ -109,8 +109,6 @@ public abstract class AbstractZipArchiver
 
     private ConcurrentJarCreator zOut;
 
-    protected ZipArchiveOutputStream zipArchiveOutputStream;
-
     public String getComment()
     {
         return comment;
@@ -281,14 +279,16 @@ public abstract class AbstractZipArchiver
 
         if ( !skipWriting )
         {
-            zipArchiveOutputStream =
+        	ZipArchiveOutputStream zipArchiveOutputStream =
                 new ZipArchiveOutputStream( bufferedOutputStream( fileOutputStream( zipFile, "zip" ) ) );
             zipArchiveOutputStream.setEncoding( encoding );
             zipArchiveOutputStream.setCreateUnicodeExtraFields( this.getUnicodeExtraFieldPolicy() );
             zipArchiveOutputStream.setMethod(
                 doCompress ? ZipArchiveOutputStream.DEFLATED : ZipArchiveOutputStream.STORED );
 
-            zOut = new ConcurrentJarCreator( recompressAddedZips, Runtime.getRuntime().availableProcessors() );
+            zOut = new ConcurrentJarCreator( zipArchiveOutputStream, recompressAddedZips, Runtime.getRuntime().availableProcessors() );
+        } else {
+        	// TODO
         }
         initZipOutputStream( zOut );
 
@@ -791,13 +791,9 @@ public abstract class AbstractZipArchiver
         // Close the output stream.
         try
         {
-            if ( zipArchiveOutputStream != null )
+            if ( zOut != null )
             {
-                if ( zOut != null )
-                {
-                    zOut.writeTo( zipArchiveOutputStream );
-                }
-                zipArchiveOutputStream.close();
+                zOut.close();
             }
         }
         catch ( IOException ex )

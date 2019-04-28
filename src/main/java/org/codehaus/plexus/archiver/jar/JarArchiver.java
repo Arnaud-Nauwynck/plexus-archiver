@@ -583,7 +583,7 @@ public class JarArchiver
         try
         {
             getLogger().debug( "Building MANIFEST-only jar: " + getDestFile().getAbsolutePath() );
-            zipArchiveOutputStream =
+            ZipArchiveOutputStream zipArchiveOutputStream =
                 new ZipArchiveOutputStream( bufferedOutputStream( fileOutputStream( getDestFile(), "jar" ) ) );
 
             zipArchiveOutputStream.setEncoding( getEncoding() );
@@ -596,7 +596,7 @@ public class JarArchiver
                 zipArchiveOutputStream.setMethod( ZipArchiveOutputStream.STORED );
             }
             ConcurrentJarCreator ps =
-                new ConcurrentJarCreator( isRecompressAddedZips(), Runtime.getRuntime().availableProcessors() );
+                new ConcurrentJarCreator( zipArchiveOutputStream, isRecompressAddedZips(), Runtime.getRuntime().availableProcessors() );
             initZipOutputStream( ps );
             finalizeZipOutputStream( ps );
         }

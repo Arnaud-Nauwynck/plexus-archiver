@@ -25,13 +25,13 @@ public class ConcurrentJarCreatorTest
     {
         File home = new File( System.getProperty( "user.home" ) );
         File result = new File( home, "multiStream2-parallel.zip" );
-        ConcurrentJarCreator zipCreator = new ConcurrentJarCreator( Runtime.getRuntime().availableProcessors() );
+        ZipArchiveOutputStream zos = createZipARchiveOutputStream( result );
+        ConcurrentJarCreator zipCreator = new ConcurrentJarCreator( zos, Runtime.getRuntime().availableProcessors() );
 
         final File file1 = new File( home, "lsrc/plexus" );
         doAddAll( file1.getPath(), zipCreator );
 
-        ZipArchiveOutputStream zos = createZipARchiveOutputStream( result );
-        zipCreator.writeTo( zos );
+        zipCreator.close();
         zos.close();
         System.out.println( "Concurrent:" + zipCreator.getStatisticsMessage() );
     }

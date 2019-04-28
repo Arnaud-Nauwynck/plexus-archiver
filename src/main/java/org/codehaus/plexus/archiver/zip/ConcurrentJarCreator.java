@@ -42,6 +42,8 @@ import static org.apache.commons.compress.archivers.zip.ZipArchiveEntryRequest.c
 public class ConcurrentJarCreator
 {
 
+	private ZipArchiveOutputStream targetStream;
+
     private final boolean compressAddedZips;
 
     private final ScatterZipOutputStream directories;
@@ -92,13 +94,14 @@ public class ConcurrentJarCreator
      * This constructor has the same effect as
      * {@link #ConcurrentJarCreator(boolean, int) ConcurrentJarCreator(true, nThreads) }</p>
      *
+     * @param targetStream target
      * @param nThreads The number of concurrent thread used to create the archive
      *
      * @throws IOException
      */
-    public ConcurrentJarCreator( int nThreads ) throws IOException
+    public ConcurrentJarCreator( ZipArchiveOutputStream targetStream, int nThreads ) throws IOException
     {
-        this( true, nThreads );
+        this( targetStream, true, nThreads );
     }
 
     /**
@@ -107,6 +110,7 @@ public class ConcurrentJarCreator
      * {@code ConcurrentJarCreator} creates zip files using several concurrent threads.
      * Entries that are already zip file could be just stored or compressed again.</p>
      *
+     * @param targetStream target ouput
      * @param compressAddedZips Indicates if entries that are zip files should be compressed.
      *                          If set to {@code false} entries that are zip files will be added using
      *                          {@link ZipEntry#STORED} method.
@@ -119,16 +123,18 @@ public class ConcurrentJarCreator
      *
      * @throws IOException
      */
-    public ConcurrentJarCreator( boolean compressAddedZips, int nThreads ) throws IOException
+    public ConcurrentJarCreator( ZipArchiveOutputStream targetStream, boolean compressAddedZips, int nThreads ) throws IOException
     {
+    	this.targetStream = targetStream;
         this.compressAddedZips = compressAddedZips;
         ScatterGatherBackingStoreSupplier defaultSupplier = new DeferredSupplier( 100000000 / nThreads );
         directories = createDeferred( defaultSupplier );
         manifest = createDeferred( defaultSupplier );
         metaInfDir = createDeferred( defaultSupplier );
         synchronousEntries = createDeferred( defaultSupplier );
-        parallelScatterZipCreator = new ParallelScatterZipCreator( Executors.newFixedThreadPool( nThreads ),
-                                                                   defaultSupplier );
+        parallelScatterZipCreator = new ParallelScatterZipCreator( 
+        		targetStream,
+        		Executors.newFixedThreadPool( nThreads ), true);
 
     }
 
@@ -211,14 +217,13 @@ public class ConcurrentJarCreator
         };
     }
 
-    public void writeTo( ZipArchiveOutputStream targetStream ) throws IOException, ExecutionException,
-                                                                      InterruptedException
+    public void close() throws IOException, ExecutionException, InterruptedException
     {
         metaInfDir.writeTo( targetStream );
         manifest.writeTo( targetStream );
         directories.writeTo( targetStream );
         synchronousEntries.writeTo( targetStream );
-        parallelScatterZipCreator.writeTo( targetStream );
+        parallelScatterZipCreator.writeTo(); // targetStream
         long startAt = System.currentTimeMillis();
         targetStream.close();
         zipCloseElapsed = System.currentTimeMillis() - startAt;
